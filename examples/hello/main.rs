@@ -10,16 +10,16 @@ fn main() {
     let time_type = ctx.ctx_at(groonga::GRN_DB_TIME).unwrap();
 
     let null_obj = ctx.new_obj_default();
-    let table = ctx.table_open_or_create("Articles", "",
+    let mut table = ctx.table_open_or_create("Articles", "",
         groonga::GRN_OBJ_TABLE_HASH_KEY | groonga::GRN_OBJ_PERSISTENT,
         &short_text_type, &null_obj).unwrap();
-    let _ = ctx.column_open_or_create(&table, "title", "", 
+    let _ = table.column_open_or_create("title", "", 
         groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
         &short_text_type);
-    let _ = ctx.column_open_or_create(&table, "content", "", 
+    let _ = table.column_open_or_create("content", "", 
         groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
         &text_type);
-    let _ = ctx.column_open_or_create(&table, "updated_at", "", 
+    let _ = table.column_open_or_create("updated_at", "", 
         groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
         &time_type);
 }
