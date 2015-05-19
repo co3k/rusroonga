@@ -105,7 +105,7 @@ impl Ctx {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj::new(self.ctx, obj))
+            Ok(self.new_obj(obj))
         }
     }
 
@@ -117,7 +117,7 @@ impl Ctx {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj::new(self.ctx, obj))
+            Ok(self.new_obj(obj))
         }
     }
 
@@ -136,7 +136,7 @@ impl Ctx {
             if table.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj::new(self.ctx, table))
+            Ok(self.new_obj(table))
         }
     }
 
@@ -150,30 +150,20 @@ impl Ctx {
         }
     }
 
-    pub fn new_obj_default(&mut self) -> Obj {
-        Obj { ctx: self.ctx, obj: unsafe { mem::zeroed() } }
-    }
-}
-
-impl Obj {
-    fn new(ctx: *mut groonga::grn_ctx, obj: *mut groonga::grn_obj) -> Obj {
-        Obj { ctx: ctx, obj: obj }
-    }
-
-    pub fn obj_column(&mut self, name: &str)
+    pub fn obj_column(&mut self, table: &Obj, name: &str)
         -> Result<Obj, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         unsafe {
             let obj = groonga::grn_obj_column(
-                self.ctx, self.obj, c_name, string::strlen(c_name) as u32);
+                self.ctx, table.obj, c_name, string::strlen(c_name) as u32);
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj::new(self.ctx, obj))
+            Ok(self.new_obj(obj))
         }
     }
 
-    pub fn column_create(&mut self, name: &str, path: &str,
+    pub fn column_create(&mut self, table: &Obj, name: &str, path: &str,
         flags: u32, _type: &Obj) -> Result<Obj, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         let c_path = if path != "" {
@@ -183,22 +173,30 @@ impl Obj {
         };
         unsafe {
             let column = groonga::grn_column_create(
-                self.ctx, self.obj, c_name, string::strlen(c_name) as u32,
+                self.ctx, table.obj, c_name, string::strlen(c_name) as u32,
                 c_path, flags as u16, _type.obj);
             if column.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj::new(self.ctx, column))
+            Ok(self.new_obj(column))
         }
     }
 
-    pub fn column_open_or_create(&mut self, name: &str,
+    pub fn column_open_or_create(&mut self, table: &Obj, name: &str,
         path: &str, flags: u32, _type: &Obj) -> Result<Obj, Error> {
-        if let Ok(column) = self.obj_column(name) {
+        if let Ok(column) = self.obj_column(&table, name) {
             Ok(column)
         } else {
-            self.column_create(name, path, flags, _type)
+            self.column_create(&table, name, path, flags, _type)
         }
+    }
+
+    fn new_obj(&mut self, obj: *mut groonga::grn_obj) -> Obj {
+        Obj { ctx: self.ctx, obj: obj }
+    }
+
+    pub fn new_obj_default(&mut self) -> Obj {
+        Obj { ctx: self.ctx, obj: unsafe { mem::zeroed() } }
     }
 }
 
