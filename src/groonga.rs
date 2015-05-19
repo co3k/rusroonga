@@ -1,5 +1,87 @@
-type va_list = *mut ::libc::c_void;
-type off_t = ::libc::c_long;
+pub type va_list = *mut ::libc::c_void;
+pub type off_t = ::libc::c_long;
+
+pub const GRN_OBJ_TABLE_TYPE_MASK:        ::libc::c_uint = (0x07);
+pub const GRN_OBJ_TABLE_HASH_KEY:         ::libc::c_uint = (0x00);
+pub const GRN_OBJ_TABLE_PAT_KEY:          ::libc::c_uint = (0x01);
+pub const GRN_OBJ_TABLE_DAT_KEY:          ::libc::c_uint = (0x02);
+pub const GRN_OBJ_TABLE_NO_KEY:           ::libc::c_uint = (0x03);
+
+pub const GRN_OBJ_KEY_MASK:               ::libc::c_uint = (0x07<<3);
+pub const GRN_OBJ_KEY_UINT:               ::libc::c_uint = (0x00<<3);
+pub const GRN_OBJ_KEY_INT:                ::libc::c_uint = (0x01<<3);
+pub const GRN_OBJ_KEY_FLOAT:              ::libc::c_uint = (0x02<<3);
+pub const GRN_OBJ_KEY_GEO_POINT:          ::libc::c_uint = (0x03<<3);
+
+pub const GRN_OBJ_KEY_WITH_SIS:           ::libc::c_uint = (0x01<<6);
+pub const GRN_OBJ_KEY_NORMALIZE:          ::libc::c_uint = (0x01<<7);
+
+pub const GRN_OBJ_COLUMN_TYPE_MASK:       ::libc::c_uint = (0x07);
+pub const GRN_OBJ_COLUMN_SCALAR:          ::libc::c_uint = (0x00);
+pub const GRN_OBJ_COLUMN_VECTOR:          ::libc::c_uint = (0x01);
+pub const GRN_OBJ_COLUMN_INDEX:           ::libc::c_uint = (0x02);
+
+pub const GRN_OBJ_COMPRESS_MASK:          ::libc::c_uint = (0x07<<4);
+pub const GRN_OBJ_COMPRESS_NONE:          ::libc::c_uint = (0x00<<4);
+pub const GRN_OBJ_COMPRESS_ZLIB:          ::libc::c_uint = (0x01<<4);
+pub const GRN_OBJ_COMPRESS_LZ4:           ::libc::c_uint = (0x02<<4);
+
+pub const GRN_OBJ_WITH_SECTION:           ::libc::c_uint = (0x01<<7);
+pub const GRN_OBJ_WITH_WEIGHT:            ::libc::c_uint = (0x01<<8);
+pub const GRN_OBJ_WITH_POSITION:          ::libc::c_uint = (0x01<<9);
+pub const GRN_OBJ_RING_BUFFER:            ::libc::c_uint = (0x01<<10);
+
+pub const GRN_OBJ_UNIT_MASK:              ::libc::c_uint = (0x0f<<8);
+pub const GRN_OBJ_UNIT_DOCUMENT_NONE:     ::libc::c_uint = (0x00<<8);
+pub const GRN_OBJ_UNIT_DOCUMENT_SECTION:  ::libc::c_uint = (0x01<<8);
+pub const GRN_OBJ_UNIT_DOCUMENT_POSITION: ::libc::c_uint = (0x02<<8);
+pub const GRN_OBJ_UNIT_SECTION_NONE:      ::libc::c_uint = (0x03<<8);
+pub const GRN_OBJ_UNIT_SECTION_POSITION:  ::libc::c_uint = (0x04<<8);
+pub const GRN_OBJ_UNIT_POSITION_NONE:     ::libc::c_uint = (0x05<<8);
+pub const GRN_OBJ_UNIT_USERDEF_DOCUMENT:  ::libc::c_uint = (0x06<<8);
+pub const GRN_OBJ_UNIT_USERDEF_SECTION:   ::libc::c_uint = (0x07<<8);
+pub const GRN_OBJ_UNIT_USERDEF_POSITION:  ::libc::c_uint = (0x08<<8);
+
+pub const GRN_OBJ_NO_SUBREC:              ::libc::c_uint = (0x00<<13);
+pub const GRN_OBJ_WITH_SUBREC:            ::libc::c_uint = (0x01<<13);
+
+pub const GRN_OBJ_KEY_VAR_SIZE:           ::libc::c_uint = (0x01<<14);
+
+pub const GRN_OBJ_TEMPORARY:              ::libc::c_uint = (0x00<<15);
+pub const GRN_OBJ_PERSISTENT:             ::libc::c_uint = (0x01<<15);
+
+/* obj types */
+
+pub const GRN_VOID:                       ::libc::c_uint = (0x00);
+pub const GRN_BULK:                       ::libc::c_uint = (0x02);
+pub const GRN_PTR:                        ::libc::c_uint = (0x03);
+pub const GRN_UVECTOR:                    ::libc::c_uint = (0x04); /* vector of fixed size data especially grn_id */
+pub const GRN_PVECTOR:                    ::libc::c_uint = (0x05); /* vector of grn_obj* */
+pub const GRN_VECTOR:                     ::libc::c_uint = (0x06); /* vector of arbitrary data */
+pub const GRN_MSG:                        ::libc::c_uint = (0x07);
+pub const GRN_QUERY:                      ::libc::c_uint = (0x08);
+pub const GRN_ACCESSOR:                   ::libc::c_uint = (0x09);
+pub const GRN_SNIP:                       ::libc::c_uint = (0x0b);
+pub const GRN_PATSNIP:                    ::libc::c_uint = (0x0c);
+pub const GRN_STRING:                     ::libc::c_uint = (0x0d);
+pub const GRN_CURSOR_TABLE_HASH_KEY:      ::libc::c_uint = (0x10);
+pub const GRN_CURSOR_TABLE_PAT_KEY:       ::libc::c_uint = (0x11);
+pub const GRN_CURSOR_TABLE_DAT_KEY:       ::libc::c_uint = (0x12);
+pub const GRN_CURSOR_TABLE_NO_KEY:        ::libc::c_uint = (0x13);
+pub const GRN_CURSOR_COLUMN_INDEX:        ::libc::c_uint = (0x18);
+pub const GRN_CURSOR_COLUMN_GEO_INDEX:    ::libc::c_uint = (0x1a);
+pub const GRN_TYPE:                       ::libc::c_uint = (0x20);
+pub const GRN_PROC:                       ::libc::c_uint = (0x21);
+pub const GRN_EXPR:                       ::libc::c_uint = (0x22);
+pub const GRN_TABLE_HASH_KEY:             ::libc::c_uint = (0x30);
+pub const GRN_TABLE_PAT_KEY:              ::libc::c_uint = (0x31);
+pub const GRN_TABLE_DAT_KEY:              ::libc::c_uint = (0x32);
+pub const GRN_TABLE_NO_KEY:               ::libc::c_uint = (0x33);
+pub const GRN_DB:                         ::libc::c_uint = (0x37);
+pub const GRN_COLUMN_FIX_SIZE:            ::libc::c_uint = (0x40);
+pub const GRN_COLUMN_VAR_SIZE:            ::libc::c_uint = (0x41);
+pub const GRN_COLUMN_INDEX:               ::libc::c_uint = (0x48);
+
 /* automatically generated by rust-bindgen */
 
 pub type grn_id = ::libc::c_uint;
