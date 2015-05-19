@@ -9,9 +9,10 @@ fn main() {
     let text_type = ctx.ctx_at(groonga::GRN_DB_TEXT).unwrap();
     let time_type = ctx.ctx_at(groonga::GRN_DB_TIME).unwrap();
 
+    let null_obj = ctx.new_obj_default();
     let table = ctx.table_open_or_create("Articles", "",
         groonga::GRN_OBJ_TABLE_HASH_KEY | groonga::GRN_OBJ_PERSISTENT,
-        &short_text_type, &rusroonga::Obj::default()).unwrap();
+        &short_text_type, &null_obj).unwrap();
     let _ = ctx.column_open_or_create(&table, "title", "", 
         groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
         &short_text_type);

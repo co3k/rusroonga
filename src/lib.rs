@@ -28,6 +28,7 @@ pub struct Ctx {
 }
 
 pub struct Obj {
+    ctx: *mut groonga::grn_ctx,
     obj: *mut groonga::grn_obj,
 }
 
@@ -104,7 +105,7 @@ impl Ctx {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(self.new_obj(obj))
         }
     }
 
@@ -116,7 +117,7 @@ impl Ctx {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(self.new_obj(obj))
         }
     }
 
@@ -135,7 +136,7 @@ impl Ctx {
             if table.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: table })
+            Ok(self.new_obj(table))
         }
     }
 
@@ -158,7 +159,7 @@ impl Ctx {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(self.new_obj(obj))
         }
     }
 
@@ -177,7 +178,7 @@ impl Ctx {
             if column.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: column })
+            Ok(self.new_obj(column))
         }
     }
 
@@ -189,10 +190,24 @@ impl Ctx {
             self.column_create(&table, name, path, flags, _type)
         }
     }
+
+    fn new_obj(&mut self, obj: *mut groonga::grn_obj) -> Obj {
+        Obj { ctx: self.ctx, obj: obj }
+    }
+
+    pub fn new_obj_default(&mut self) -> Obj {
+        Obj { ctx: self.ctx, obj: unsafe { mem::zeroed() } }
+    }
 }
 
-impl Default for Obj {
-    fn default() -> Obj { unsafe { mem::zeroed() } }
+impl Drop for Obj {
+    fn drop(&mut self) {
+        unsafe {
+            if !self.ctx.is_null() && !self.obj.is_null() {
+                groonga::grn_obj_unlink(self.ctx, self.obj);
+            }
+        }
+    }
 }
 
 fn file_exists(path: &str) -> bool {
