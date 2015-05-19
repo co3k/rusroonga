@@ -4,6 +4,7 @@ extern crate libc;
 pub mod groonga;
 
 use libc::funcs::c95::string;
+use libc::types::common::c95::c_void;
 use std::ffi::CString;
 use std::fs;
 use std::mem;
@@ -197,6 +198,18 @@ impl Ctx {
 
     pub fn new_obj_default(&mut self) -> Obj {
         Obj { ctx: self.ctx, obj: unsafe { mem::zeroed() } }
+    }
+
+    pub fn table_add(&mut self, table: &Obj, key: &str) -> (u32, bool) {
+        let c_key = CString::new(key).unwrap().as_ptr();
+        unsafe {
+            let mut added: ::libc::c_int = 0;
+            let added_ptr: *mut ::libc::c_int = &mut added;
+            let id = groonga::grn_table_add(
+                self.ctx, table.obj, c_key as (*const c_void),
+                string::strlen(c_key) as u32, added_ptr);
+            (id, added != 0)
+        }
     }
 }
 

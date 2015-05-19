@@ -22,4 +22,7 @@ fn main() {
     let _ = ctx.column_open_or_create(&table, "updated_at", "", 
         groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
         &time_type);
+    let (record_id, added) = ctx.table_add(&table,
+        "http://ja.wikipedia.org/wiki/%E6%B7%B1%E6%B5%B7%E9%AD%9A");
+    println!("record_id={}, added={}", record_id, added);
 }
