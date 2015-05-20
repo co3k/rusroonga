@@ -12,6 +12,13 @@ use std::ptr;
 use std::result::Result;
 use std::result::Result::{Ok, Err};
 
+extern {
+    fn cgroonga_text_init(text: *mut groonga::grn_obj, impl_flags: u8);
+    fn cgroonga_text_put(
+        ctx: *mut groonga::grn_ctx, text: *mut groonga::grn_obj,
+        str: *const u8, len: u32);
+}
+
 #[derive(Debug)]
 pub struct Error {
     code: i32
@@ -209,6 +216,38 @@ impl Ctx {
                 self.ctx, table.obj, c_key as (*const c_void),
                 string::strlen(c_key) as u32, added_ptr);
             (id, added != 0)
+        }
+    }
+
+    pub fn text_put(&mut self, text: &Obj, s: &str) -> () {
+        let c_s = if s != "" {
+            CString::new(s).unwrap().as_ptr()
+        } else {
+            ptr::null()
+        };
+        unsafe {
+            cgroonga_text_put(self.ctx, text.obj, c_s as *const u8,
+                string::strlen(c_s) as u32);
+        }
+    }
+
+    pub fn obj_set_value(&mut self, obj: &Obj, id: u32, value: &Obj,
+        flags: u32) -> Result<(), Error> {
+        unsafe {
+            let rc = groonga::grn_obj_set_value(self.ctx, obj.obj, id,
+                value.obj, flags as i32);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            Ok(())
+        }
+    }
+}
+
+impl Obj {
+    pub fn text_init(&mut self, impl_flags: u8) -> () {
+        unsafe {
+            cgroonga_text_init(self.obj, impl_flags);
         }
     }
 }
