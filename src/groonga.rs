@@ -1124,6 +1124,9 @@ extern "C" {
     pub fn grn_obj_clear_lock(ctx: *mut grn_ctx, obj: *mut grn_obj) -> grn_rc;
     pub fn grn_obj_is_locked(ctx: *mut grn_ctx, obj: *mut grn_obj)
      -> ::libc::c_uint;
+    pub fn grn_obj_flush(ctx: *mut grn_ctx, obj: *mut grn_obj) -> grn_rc;
+    pub fn grn_obj_flush_recursive(ctx: *mut grn_ctx, obj: *mut grn_obj)
+     -> grn_rc;
     pub fn grn_obj_defrag(ctx: *mut grn_ctx, obj: *mut grn_obj,
                           threshold: ::libc::c_int) -> ::libc::c_int;
     pub fn grn_obj_db(ctx: *mut grn_ctx, obj: *mut grn_obj) -> *mut grn_obj;
