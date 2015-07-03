@@ -25,5 +25,5 @@ DYLD_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDef
 
 ## License
 
-* rusroonga: MIT
+* rusroonga: [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
 * [groonga](https://github.com/groonga/groonga): [LGPL 2.1](https://github.com/groonga/groonga/blob/master/COPYING)
