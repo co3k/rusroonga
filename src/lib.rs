@@ -49,65 +49,82 @@ impl Drop for Groonga {
     }
 }
 
-pub struct Ctx {
+pub struct Context {
     ctx: *mut groonga::grn_ctx,
+}
+
+pub struct DB {
+    context: *mut Context,
     db: *mut groonga::grn_obj,
+}
+
+impl DB {
+    pub fn close(&mut self) {
+        unsafe {
+            if !self.db.is_null() {
+                groonga::grn_obj_unlink((*self.context).ctx, self.db);
+                self.db = mem::zeroed();
+            }
+        }
+    }
+}
+
+impl Drop for DB {
+    fn drop(&mut self) {
+        self.close();
+    }
 }
 
 pub struct Obj {
     obj: *mut groonga::grn_obj,
 }
 
-impl Drop for Ctx {
+impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
-            if !self.db.is_null() {
-                groonga::grn_obj_unlink(self.ctx, self.db);
-            }
-
-            let rc2 = groonga::grn_ctx_fin(self.ctx);
-            if rc2 != groonga::GRN_SUCCESS {
-                panic!("grn_ctx_fin(ctx) failed with rc2={}", rc2);
+            let rc = groonga::grn_ctx_fin(self.ctx);
+            if rc != groonga::GRN_SUCCESS {
+                panic!("grn_ctx_fin(ctx) failed with rc={}", rc);
             }
         }
     }
 }
 
-impl Ctx {
-    pub fn new() -> Result<Ctx, Error> {
+impl Context {
+    pub fn new() -> Result<Context, Error> {
         unsafe {
             let ctx = groonga::grn_ctx_open(0);
             if ctx.is_null() {
                 return Err(Error::new(groonga::GRN_NO_MEMORY_AVAILABLE))
             }
-            Ok(Ctx { ctx: ctx, db: mem::zeroed() })
+            Ok(Context { ctx: ctx })
         }
     }
 
-    pub fn db_create(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_create(&mut self, path: &str) -> Result<DB, Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
-            self.db = groonga::grn_db_create(
+            let db = groonga::grn_db_create(
                 self.ctx, c_path.as_ptr(), mem::zeroed());
-            if self.db.is_null() {
+            if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(())
+            Ok(DB { context: self, db: db })
         }
     }
 
-    pub fn db_open(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_open(&mut self, path: &str) -> Result<DB, Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
-            self.db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
-            if self.db.is_null() {
+            let db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
+            if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(())
+            Ok(DB { context: self, db: db })
         }
     }
 
-    pub fn db_open_or_create(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_open_or_create(&mut self, path: &str) -> Result<DB, Error> {
         if file_exists(path) {
             self.db_open(path)
         } else {
