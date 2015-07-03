@@ -2,6 +2,7 @@ extern crate rusroonga;
 use rusroonga::groonga;
 
 fn main() {
+    rusroonga::Groonga::new().unwrap();
     let mut ctx = rusroonga::Ctx::new().unwrap();
     ctx.db_open_or_create("test.db").unwrap();
 

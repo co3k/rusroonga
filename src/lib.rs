@@ -22,6 +22,33 @@ impl Error {
     }
 }
 
+pub struct Groonga {
+    dummy: u32
+}
+
+impl Groonga {
+    pub fn new() -> Result<(), Error> {
+        unsafe {
+            let rc = groonga::grn_init();
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            Ok(())
+        }
+    }
+}
+
+impl Drop for Groonga {
+    fn drop(&mut self) {
+        unsafe {
+            let rc = groonga::grn_fin();
+            if rc != groonga::GRN_SUCCESS {
+                panic!("grn_fin() failed with rc={}", rc);
+            }
+        }
+    }
+}
+
 pub struct Ctx {
     ctx: *mut groonga::grn_ctx,
     db: *mut groonga::grn_obj,
@@ -42,11 +69,6 @@ impl Drop for Ctx {
             if rc2 != groonga::GRN_SUCCESS {
                 panic!("grn_ctx_fin(ctx) failed with rc2={}", rc2);
             }
-
-            let rc3 = groonga::grn_fin();
-            if rc3 != groonga::GRN_SUCCESS {
-                panic!("grn_fin() failed with rc3={}", rc3);
-            }
         }
     }
 }
@@ -54,11 +76,6 @@ impl Drop for Ctx {
 impl Ctx {
     pub fn new() -> Result<Ctx, Error> {
         unsafe {
-            let rc = groonga::grn_init();
-            if rc != groonga::GRN_SUCCESS {
-                return Err(Error::new(rc))
-            }
-
             let ctx = groonga::grn_ctx_open(0);
             if ctx.is_null() {
                 return Err(Error::new(groonga::GRN_NO_MEMORY_AVAILABLE))
