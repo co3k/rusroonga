@@ -27,13 +27,13 @@ pub struct Groonga {
 }
 
 impl Groonga {
-    pub fn new() -> Result<(), Error> {
+    pub fn new() -> Result<Groonga, Error> {
         unsafe {
             let rc = groonga::grn_init();
             if rc != groonga::GRN_SUCCESS {
                 return Err(Error::new(rc))
             }
-            Ok(())
+            Ok(Groonga{ dummy: 0 })
         }
     }
 }
@@ -54,7 +54,7 @@ pub struct Context {
 }
 
 pub struct DB {
-    context: *mut Context,
+    ctx: *mut groonga::grn_ctx,
     db: *mut groonga::grn_obj,
 }
 
@@ -62,16 +62,10 @@ impl DB {
     pub fn close(&mut self) {
         unsafe {
             if !self.db.is_null() {
-                groonga::grn_obj_unlink((*self.context).ctx, self.db);
+                groonga::grn_obj_unlink(self.ctx, self.db);
                 self.db = mem::zeroed();
             }
         }
-    }
-}
-
-impl Drop for DB {
-    fn drop(&mut self) {
-        self.close();
     }
 }
 
@@ -106,10 +100,11 @@ impl Context {
         unsafe {
             let db = groonga::grn_db_create(
                 self.ctx, c_path.as_ptr(), mem::zeroed());
-            if db.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
-            Ok(DB { context: self, db: db })
+            Ok(DB { ctx: self.ctx, db: db })
         }
     }
 
@@ -117,10 +112,11 @@ impl Context {
         let c_path = CString::new(path).unwrap();
         unsafe {
             let db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
-            if db.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
-            Ok(DB { context: self, db: db })
+            Ok(DB { ctx: self.ctx, db: db })
         }
     }
 
@@ -135,8 +131,9 @@ impl Context {
     pub fn ctx_at(&mut self, id: u32) -> Result<Obj, Error> {
         unsafe {
             let obj = groonga::grn_ctx_at(self.ctx, id);
-            if obj.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
             Ok(Obj { obj: obj })
         }
@@ -147,8 +144,9 @@ impl Context {
         unsafe {
             let obj = groonga::grn_ctx_get(
                 self.ctx, c_name, string::strlen(c_name) as i32);
-            if obj.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
             Ok(Obj { obj: obj })
         }
@@ -166,8 +164,9 @@ impl Context {
             let table = groonga::grn_table_create(
                 self.ctx, c_name, string::strlen(c_name) as u32, c_path,
                 flags as u16, key_type.obj, value_type.obj);
-            if table.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
             Ok(Obj { obj: table })
         }
@@ -189,8 +188,9 @@ impl Context {
         unsafe {
             let obj = groonga::grn_obj_column(
                 self.ctx, table.obj, c_name, string::strlen(c_name) as u32);
-            if obj.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
             Ok(Obj { obj: obj })
         }
@@ -208,8 +208,9 @@ impl Context {
             let column = groonga::grn_column_create(
                 self.ctx, table.obj, c_name, string::strlen(c_name) as u32,
                 c_path, flags as u16, _type.obj);
-            if column.is_null() {
-                return Err(Error::new((*self.ctx).rc))
+            let rc = (*self.ctx).rc;
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
             }
             Ok(Obj { obj: column })
         }
