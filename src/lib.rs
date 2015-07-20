@@ -63,12 +63,7 @@ pub struct Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        unsafe {
-            let rc = groonga::grn_ctx_fin(self.ctx);
-            if rc != groonga::GRN_SUCCESS {
-                panic!("grn_ctx_fin(ctx) failed with rc={}", rc);
-            }
-        }
+        self.close().unwrap()
     }
 }
 
@@ -80,6 +75,20 @@ impl Context {
                 return Err(Error::new(groonga::GRN_NO_MEMORY_AVAILABLE))
             }
             Ok(Context { ctx: ctx })
+        }
+    }
+
+    pub fn close(&mut self) -> Result<(), Error> {
+        unsafe {
+            if self.ctx.is_null() {
+                return Ok(())
+            }
+            let rc = groonga::grn_ctx_fin(self.ctx);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            self.ctx = mem::zeroed();
+            Ok(())
         }
     }
 
