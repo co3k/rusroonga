@@ -6,9 +6,9 @@ fn main() {
     let mut ctx = rusroonga::Context::new().unwrap();
     ctx.db_open_or_create("test.db").unwrap();
 
-    let short_text_type = ctx.ctx_at(groonga::GRN_DB_SHORT_TEXT).unwrap();
-    let text_type = ctx.ctx_at(groonga::GRN_DB_TEXT).unwrap();
-    let time_type = ctx.ctx_at(groonga::GRN_DB_TIME).unwrap();
+    let short_text_type = ctx.at(groonga::GRN_DB_SHORT_TEXT).unwrap();
+    let text_type = ctx.at(groonga::GRN_DB_TEXT).unwrap();
+    let time_type = ctx.at(groonga::GRN_DB_TIME).unwrap();
 
     let table = ctx.table_open_or_create("Articles", "",
         groonga::GRN_OBJ_TABLE_HASH_KEY | groonga::GRN_OBJ_PERSISTENT,

@@ -123,7 +123,7 @@ impl Context {
         }
     }
 
-    pub fn ctx_at(&mut self, id: u32) -> Option<Object> {
+    pub fn at(&mut self, id: u32) -> Option<Object> {
         unsafe {
             let obj = groonga::grn_ctx_at(self.ctx, id);
             if obj.is_null() {
