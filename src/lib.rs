@@ -2,9 +2,9 @@ extern crate libc;
 
 pub mod groonga;
 
-use libc::funcs::c95::string;
+//use libc::funcs::c95::string;
 use std::ffi::{CStr, CString};
-use std::{mem, ptr, str};
+use std::{mem, str};
 use std::rc::Rc;
 use std::result::Result;
 use std::result::Result::{Ok, Err};
@@ -77,6 +77,16 @@ impl Context {
         }
     }
 
+    pub fn at(context: Rc<Context>, id: u32) -> Option<Object> {
+        unsafe {
+            let obj = groonga::grn_ctx_at(context.ctx, id);
+            if obj.is_null() {
+                return None
+            }
+            Some(Object { context: context, obj: obj })
+        }
+    }
+
     pub fn close(&mut self) -> Result<(), Error> {
         unsafe {
             if self.ctx.is_null() {
@@ -91,106 +101,96 @@ impl Context {
         }
     }
 
-    pub fn at(&mut self, id: u32) -> Option<Object> {
-        unsafe {
-            let obj = groonga::grn_ctx_at(self.ctx, id);
-            if obj.is_null() {
-                return None
-            }
-            Some(Object { context: self, obj: obj })
-        }
-    }
-
-    pub fn ctx_get(&mut self, name: &str) -> Result<Object, Error> {
-        let c_name = CString::new(name).unwrap().as_ptr();
-        unsafe {
-            let obj = groonga::grn_ctx_get(
-                self.ctx, c_name, string::strlen(c_name) as i32);
-            if obj.is_null() {
-                return Err(Error::new((*self.ctx).rc))
-            }
-            Ok(Object { context: self, obj: obj })
-        }
-    }
-
-    pub fn table_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
-        let c_name = CString::new(name).unwrap().as_ptr();
-        let c_path = if path != "" {
-            CString::new(path).unwrap().as_ptr()
-        } else {
-            ptr::null()
-        };
-        unsafe {
-            let c_value_type =
-                match value_type {
-                    Some(value_type_obj) => value_type_obj.obj,
-                    None => mem::zeroed(),
-                };
-            let table = groonga::grn_table_create(
-                self.ctx, c_name, string::strlen(c_name) as u32, c_path,
-                flags as u16, key_type.obj, c_value_type);
-            if table.is_null() {
-                return Err(Error::new((*self.ctx).rc))
-            }
-            Ok(Object { context: self, obj: table })
-        }
-    }
-
-    pub fn table_open_or_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
-        if let Ok(table) = self.ctx_get(name) {
-            Ok(table)
-        } else {
-            self.table_create(name, path, flags,
-                key_type, value_type)
-        }
-    }
-
-    pub fn obj_column(&mut self, table: &Object, name: &str)
-        -> Result<Object, Error> {
-        let c_name = CString::new(name).unwrap().as_ptr();
-        unsafe {
-            let obj = groonga::grn_obj_column(
-                self.ctx, table.obj, c_name, string::strlen(c_name) as u32);
-            if obj.is_null() {
-                return Err(Error::new((*self.ctx).rc))
-            }
-            Ok(Object { context: self, obj: obj })
-        }
-    }
-
-    pub fn column_create(&mut self, table: &Object, name: &str, path: &str,
-        flags: u32, _type: &Object) -> Result<Object, Error> {
-        let c_name = CString::new(name).unwrap().as_ptr();
-        let c_path = if path != "" {
-            CString::new(path).unwrap().as_ptr()
-        } else {
-            ptr::null()
-        };
-        unsafe {
-            let column = groonga::grn_column_create(
-                self.ctx, table.obj, c_name, string::strlen(c_name) as u32,
-                c_path, flags as u16, _type.obj);
-            if column.is_null() {
-                return Err(Error::new((*self.ctx).rc))
-            }
-            Ok(Object { context: self, obj: column })
-        }
-    }
-
-    pub fn column_open_or_create(&mut self, table: &Object, name: &str,
-        path: &str, flags: u32, _type: &Object) -> Result<Object, Error> {
-        if let Ok(column) = self.obj_column(&table, name) {
-            Ok(column)
-        } else {
-            self.column_create(&table, name, path, flags, _type)
-        }
-    }
+//    pub fn ctx_get(&mut self, name: &str) -> Result<Object, Error> {
+//        let c_name = CString::new(name).unwrap().as_ptr();
+//        unsafe {
+//            let obj = groonga::grn_ctx_get(
+//                self.ctx, c_name, string::strlen(c_name) as i32);
+//            if obj.is_null() {
+//                return Err(Error::new((*self.ctx).rc))
+//            }
+//            Ok(Object { context: self, obj: obj })
+//        }
+//    }
+//
+//    pub fn table_create(&mut self, name: &str, path: &str, flags: u32,
+//        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
+//        let c_name = CString::new(name).unwrap().as_ptr();
+//        let c_path = if path != "" {
+//            CString::new(path).unwrap().as_ptr()
+//        } else {
+//            ptr::null()
+//        };
+//        unsafe {
+//            let c_value_type =
+//                match value_type {
+//                    Some(value_type_obj) => value_type_obj.obj,
+//                    None => mem::zeroed(),
+//                };
+//            let table = groonga::grn_table_create(
+//                self.ctx, c_name, string::strlen(c_name) as u32, c_path,
+//                flags as u16, key_type.obj, c_value_type);
+//            if table.is_null() {
+//                return Err(Error::new((*self.ctx).rc))
+//            }
+//            Ok(Object { context: self, obj: table })
+//        }
+//    }
+//
+//    pub fn table_open_or_create(&mut self, name: &str, path: &str, flags: u32,
+//        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
+//        if let Ok(table) = self.ctx_get(name) {
+//            Ok(table)
+//        } else {
+//            self.table_create(name, path, flags,
+//                key_type, value_type)
+//        }
+//    }
+//
+//    pub fn obj_column(&mut self, table: &Object, name: &str)
+//        -> Result<Object, Error> {
+//        let c_name = CString::new(name).unwrap().as_ptr();
+//        unsafe {
+//            let obj = groonga::grn_obj_column(
+//                self.ctx, table.obj, c_name, string::strlen(c_name) as u32);
+//            if obj.is_null() {
+//                return Err(Error::new((*self.ctx).rc))
+//            }
+//            Ok(Object { context: self, obj: obj })
+//        }
+//    }
+//
+//    pub fn column_create(&mut self, table: &Object, name: &str, path: &str,
+//        flags: u32, _type: &Object) -> Result<Object, Error> {
+//        let c_name = CString::new(name).unwrap().as_ptr();
+//        let c_path = if path != "" {
+//            CString::new(path).unwrap().as_ptr()
+//        } else {
+//            ptr::null()
+//        };
+//        unsafe {
+//            let column = groonga::grn_column_create(
+//                self.ctx, table.obj, c_name, string::strlen(c_name) as u32,
+//                c_path, flags as u16, _type.obj);
+//            if column.is_null() {
+//                return Err(Error::new((*self.ctx).rc))
+//            }
+//            Ok(Object { context: self, obj: column })
+//        }
+//    }
+//
+//    pub fn column_open_or_create(&mut self, table: &Object, name: &str,
+//        path: &str, flags: u32, _type: &Object) -> Result<Object, Error> {
+//        if let Ok(column) = self.obj_column(&table, name) {
+//            Ok(column)
+//        } else {
+//            self.column_create(&table, name, path, flags, _type)
+//        }
+//    }
 }
 
 pub struct Object {
-    context: *mut Context,
+    context: Rc<Context>,
     obj: *mut groonga::grn_obj,
 }
 
@@ -206,32 +206,8 @@ impl Object {
             if self.obj.is_null() {
                 return
             }
-            groonga::grn_obj_unlink((*self.context).ctx, self.obj);
+            close_obj(self.context.clone(), self.obj);
             self.obj = mem::zeroed()
-        }
-    }
-
-    pub fn remove(&mut self) -> Result<(), Error> {
-        unsafe {
-            if self.obj.is_null() {
-                return Err(Error::new(groonga::GRN_INVALID_ARGUMENT))
-            }
-            let rc = groonga::grn_obj_remove((*self.context).ctx, self.obj);
-            if rc != groonga::GRN_SUCCESS {
-                return Err(Error::new(rc))
-            }
-            self.obj = mem::zeroed();
-            Ok(())
-        }
-    }
-
-    pub fn path(&self) -> Option<&str> {
-        unsafe {
-            let path = groonga::grn_obj_path((*self.context).ctx, self.obj);
-            if path.is_null() {
-                return None
-            }
-            return Some(str::from_utf8(CStr::from_ptr(path).to_bytes()).unwrap())
         }
     }
 }
