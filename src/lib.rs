@@ -146,7 +146,7 @@ impl Context {
     }
 
     pub fn table_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Obj, value_type: &Obj) -> Result<Obj, Error> {
+        key_type: &Obj, value_type: Option<&Obj>) -> Result<Obj, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         let c_path = if path != "" {
             CString::new(path).unwrap().as_ptr()
@@ -154,9 +154,14 @@ impl Context {
             ptr::null()
         };
         unsafe {
+            let c_value_type =
+                match value_type {
+                    Some(value_type_obj) => value_type_obj.obj,
+                    None => mem::zeroed(),
+                };
             let table = groonga::grn_table_create(
                 self.ctx, c_name, string::strlen(c_name) as u32, c_path,
-                flags as u16, key_type.obj, value_type.obj);
+                flags as u16, key_type.obj, c_value_type);
             if table.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
@@ -165,7 +170,7 @@ impl Context {
     }
 
     pub fn table_open_or_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Obj, value_type: &Obj) -> Result<Obj, Error> {
+        key_type: &Obj, value_type: Option<&Obj>) -> Result<Obj, Error> {
         if let Ok(table) = self.ctx_get(name) {
             Ok(table)
         } else {
@@ -214,10 +219,6 @@ impl Context {
             self.column_create(&table, name, path, flags, _type)
         }
     }
-}
-
-impl Default for Obj {
-    fn default() -> Obj { unsafe { mem::zeroed() } }
 }
 
 fn file_exists(path: &str) -> bool {
