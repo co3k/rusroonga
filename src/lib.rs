@@ -59,23 +59,14 @@ impl Drop for Groonga {
 
 pub struct Context {
     ctx: *mut groonga::grn_ctx,
-    db: *mut groonga::grn_obj,
-}
-
-pub struct Object {
-    obj: *mut groonga::grn_obj,
 }
 
 impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
-            if !self.db.is_null() {
-                groonga::grn_obj_unlink(self.ctx, self.db);
-            }
-
-            let rc2 = groonga::grn_ctx_fin(self.ctx);
-            if rc2 != groonga::GRN_SUCCESS {
-                panic!("grn_ctx_fin(ctx) failed with rc2={}", rc2);
+            let rc = groonga::grn_ctx_fin(self.ctx);
+            if rc != groonga::GRN_SUCCESS {
+                panic!("grn_ctx_fin(ctx) failed with rc={}", rc);
             }
         }
     }
@@ -88,16 +79,16 @@ impl Context {
             if ctx.is_null() {
                 return Err(Error::new(groonga::GRN_NO_MEMORY_AVAILABLE))
             }
-            Ok(Context { ctx: ctx, db: mem::zeroed() })
+            Ok(Context { ctx: ctx })
         }
     }
 
     pub fn db_create(&mut self, path: &str) -> Result<(), Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
-            self.db = groonga::grn_db_create(
+            let db = groonga::grn_db_create(
                 self.ctx, c_path.as_ptr(), mem::zeroed());
-            if self.db.is_null() {
+            if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
             Ok(())
@@ -107,8 +98,8 @@ impl Context {
     pub fn db_open(&mut self, path: &str) -> Result<(), Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
-            self.db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
-            if self.db.is_null() {
+            let db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
+            if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
             Ok(())
@@ -129,7 +120,7 @@ impl Context {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Object { obj: obj })
+            Ok(Object { context: self, obj: obj })
         }
     }
 
@@ -141,7 +132,7 @@ impl Context {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Object { obj: obj })
+            Ok(Object { context: self, obj: obj })
         }
     }
 
@@ -165,7 +156,7 @@ impl Context {
             if table.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Object { obj: table })
+            Ok(Object { context: self, obj: table })
         }
     }
 
@@ -188,7 +179,7 @@ impl Context {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Object { obj: obj })
+            Ok(Object { context: self, obj: obj })
         }
     }
 
@@ -207,7 +198,7 @@ impl Context {
             if column.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Object { obj: column })
+            Ok(Object { context: self, obj: column })
         }
     }
 
@@ -217,6 +208,22 @@ impl Context {
             Ok(column)
         } else {
             self.column_create(&table, name, path, flags, _type)
+        }
+    }
+}
+
+pub struct Object {
+    context: *mut Context,
+    obj: *mut groonga::grn_obj,
+}
+
+impl Object {
+    pub fn close(&mut self) {
+        unsafe {
+            if self.obj.is_null() {
+                return
+            }
+            groonga::grn_obj_unlink((*self.context).ctx, self.obj)
         }
     }
 }
