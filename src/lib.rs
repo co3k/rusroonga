@@ -3,10 +3,8 @@ extern crate libc;
 pub mod groonga;
 
 use libc::funcs::c95::string;
-use std::ffi::CString;
-use std::fs;
-use std::mem;
-use std::ptr;
+use std::ffi::{CStr, CString};
+use std::{fs, mem, ptr, str};
 use std::result::Result;
 use std::result::Result::{Ok, Err};
 
@@ -36,7 +34,7 @@ impl Groonga {
         }
     }
 
-    pub fn close(&mut self) -> Result<(), Error> {
+    fn close(&mut self) -> Result<(), Error> {
         if self.closed {
             return Ok(())
         }
@@ -92,7 +90,7 @@ impl Context {
         }
     }
 
-    pub fn db_create(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_create(&mut self, path: &str) -> Result<Object, Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
             let db = groonga::grn_db_create(
@@ -100,22 +98,22 @@ impl Context {
             if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(())
+            Ok(Object{ context: self, obj: db })
         }
     }
 
-    pub fn db_open(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_open(&mut self, path: &str) -> Result<Object, Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
             let db = groonga::grn_db_open(self.ctx, c_path.as_ptr());
             if db.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(())
+            Ok(Object{ context: self, obj: db })
         }
     }
 
-    pub fn db_open_or_create(&mut self, path: &str) -> Result<(), Error> {
+    pub fn db_open_or_create(&mut self, path: &str) -> Result<Object, Error> {
         if file_exists(path) {
             self.db_open(path)
         } else {
@@ -240,6 +238,30 @@ impl Object {
             }
             groonga::grn_obj_unlink((*self.context).ctx, self.obj);
             self.obj = mem::zeroed()
+        }
+    }
+
+    pub fn remove(&mut self) -> Result<(), Error> {
+        unsafe {
+            if self.obj.is_null() {
+                return Err(Error::new(groonga::GRN_INVALID_ARGUMENT))
+            }
+            let rc = groonga::grn_obj_remove((*self.context).ctx, self.obj);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            self.obj = mem::zeroed();
+            Ok(())
+        }
+    }
+
+    pub fn path(&self) -> Option<&str> {
+        unsafe {
+            let path = groonga::grn_obj_path((*self.context).ctx, self.obj);
+            if path.is_null() {
+                return None
+            }
+            return Some(str::from_utf8(CStr::from_ptr(path).to_bytes()).unwrap())
         }
     }
 }
