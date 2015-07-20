@@ -3,7 +3,7 @@ use rusroonga::groonga;
 
 fn main() {
     rusroonga::Groonga::new().unwrap();
-    let mut ctx = rusroonga::Ctx::new().unwrap();
+    let mut ctx = rusroonga::Context::new().unwrap();
     ctx.db_open_or_create("test.db").unwrap();
 
     let short_text_type = ctx.ctx_at(groonga::GRN_DB_SHORT_TEXT).unwrap();

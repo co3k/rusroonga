@@ -57,7 +57,7 @@ impl Drop for Groonga {
     }
 }
 
-pub struct Ctx {
+pub struct Context {
     ctx: *mut groonga::grn_ctx,
     db: *mut groonga::grn_obj,
 }
@@ -66,7 +66,7 @@ pub struct Obj {
     obj: *mut groonga::grn_obj,
 }
 
-impl Drop for Ctx {
+impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
             if !self.db.is_null() {
@@ -81,14 +81,14 @@ impl Drop for Ctx {
     }
 }
 
-impl Ctx {
-    pub fn new() -> Result<Ctx, Error> {
+impl Context {
+    pub fn new() -> Result<Context, Error> {
         unsafe {
             let ctx = groonga::grn_ctx_open(0);
             if ctx.is_null() {
                 return Err(Error::new(groonga::GRN_NO_MEMORY_AVAILABLE))
             }
-            Ok(Ctx { ctx: ctx, db: mem::zeroed() })
+            Ok(Context { ctx: ctx, db: mem::zeroed() })
         }
     }
 
