@@ -62,7 +62,7 @@ pub struct Context {
     db: *mut groonga::grn_obj,
 }
 
-pub struct Obj {
+pub struct Object {
     obj: *mut groonga::grn_obj,
 }
 
@@ -123,17 +123,17 @@ impl Context {
         }
     }
 
-    pub fn ctx_at(&mut self, id: u32) -> Result<Obj, Error> {
+    pub fn ctx_at(&mut self, id: u32) -> Result<Object, Error> {
         unsafe {
             let obj = groonga::grn_ctx_at(self.ctx, id);
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(Object { obj: obj })
         }
     }
 
-    pub fn ctx_get(&mut self, name: &str) -> Result<Obj, Error> {
+    pub fn ctx_get(&mut self, name: &str) -> Result<Object, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         unsafe {
             let obj = groonga::grn_ctx_get(
@@ -141,12 +141,12 @@ impl Context {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(Object { obj: obj })
         }
     }
 
     pub fn table_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Obj, value_type: Option<&Obj>) -> Result<Obj, Error> {
+        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         let c_path = if path != "" {
             CString::new(path).unwrap().as_ptr()
@@ -165,12 +165,12 @@ impl Context {
             if table.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: table })
+            Ok(Object { obj: table })
         }
     }
 
     pub fn table_open_or_create(&mut self, name: &str, path: &str, flags: u32,
-        key_type: &Obj, value_type: Option<&Obj>) -> Result<Obj, Error> {
+        key_type: &Object, value_type: Option<&Object>) -> Result<Object, Error> {
         if let Ok(table) = self.ctx_get(name) {
             Ok(table)
         } else {
@@ -179,8 +179,8 @@ impl Context {
         }
     }
 
-    pub fn obj_column(&mut self, table: &Obj, name: &str)
-        -> Result<Obj, Error> {
+    pub fn obj_column(&mut self, table: &Object, name: &str)
+        -> Result<Object, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         unsafe {
             let obj = groonga::grn_obj_column(
@@ -188,12 +188,12 @@ impl Context {
             if obj.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: obj })
+            Ok(Object { obj: obj })
         }
     }
 
-    pub fn column_create(&mut self, table: &Obj, name: &str, path: &str,
-        flags: u32, _type: &Obj) -> Result<Obj, Error> {
+    pub fn column_create(&mut self, table: &Object, name: &str, path: &str,
+        flags: u32, _type: &Object) -> Result<Object, Error> {
         let c_name = CString::new(name).unwrap().as_ptr();
         let c_path = if path != "" {
             CString::new(path).unwrap().as_ptr()
@@ -207,12 +207,12 @@ impl Context {
             if column.is_null() {
                 return Err(Error::new((*self.ctx).rc))
             }
-            Ok(Obj { obj: column })
+            Ok(Object { obj: column })
         }
     }
 
-    pub fn column_open_or_create(&mut self, table: &Obj, name: &str,
-        path: &str, flags: u32, _type: &Obj) -> Result<Obj, Error> {
+    pub fn column_open_or_create(&mut self, table: &Object, name: &str,
+        path: &str, flags: u32, _type: &Object) -> Result<Object, Error> {
         if let Ok(column) = self.obj_column(&table, name) {
             Ok(column)
         } else {
