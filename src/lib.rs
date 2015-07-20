@@ -223,7 +223,8 @@ impl Object {
             if self.obj.is_null() {
                 return
             }
-            groonga::grn_obj_unlink((*self.context).ctx, self.obj)
+            groonga::grn_obj_unlink((*self.context).ctx, self.obj);
+            self.obj = mem::zeroed()
         }
     }
 }
