@@ -22,16 +22,30 @@ impl Error {
 }
 
 pub struct Groonga {
-    dummy: u32
+    closed: bool
 }
 
 impl Groonga {
-    pub fn new() -> Result<(), Error> {
+    pub fn new() -> Result<Groonga, Error> {
         unsafe {
-            let rc = groonga::grn_init();
+            let rc =  groonga::grn_init();
             if rc != groonga::GRN_SUCCESS {
                 return Err(Error::new(rc))
             }
+            Ok(Groonga{ closed: false })
+        }
+    }
+
+    pub fn close(&mut self) -> Result<(), Error> {
+        if self.closed {
+            return Ok(())
+        }
+        unsafe {
+            let rc = groonga::grn_fin();
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            self.closed = true;
             Ok(())
         }
     }
@@ -39,12 +53,7 @@ impl Groonga {
 
 impl Drop for Groonga {
     fn drop(&mut self) {
-        unsafe {
-            let rc = groonga::grn_fin();
-            if rc != groonga::GRN_SUCCESS {
-                panic!("grn_fin() failed with rc={}", rc);
-            }
-        }
+        self.close().unwrap()
     }
 }
 
