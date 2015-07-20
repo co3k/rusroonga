@@ -226,6 +226,12 @@ pub struct Object {
     obj: *mut groonga::grn_obj,
 }
 
+impl Drop for Object {
+    fn drop(&mut self) {
+        self.close()
+    }
+}
+
 impl Object {
     pub fn close(&mut self) {
         unsafe {
