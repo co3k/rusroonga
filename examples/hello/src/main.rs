@@ -1,25 +1,19 @@
 extern crate rusroonga;
-use rusroonga::groonga;
+extern crate tempdir;
+
+use rusroonga::Database;
+use std::{env, fs};
+use std::rc::Rc;
 
 fn main() {
+    let work_dir = tempdir::TempDir::new(env::temp_dir().to_str().unwrap()).unwrap();
+    let mut buf = work_dir.into_path();
+    buf.push("test.db");
+    let path = buf.to_str().unwrap();
+
     rusroonga::Groonga::new().unwrap();
-    let mut ctx = rusroonga::Context::new().unwrap();
-    ctx.db_open_or_create("test.db").unwrap();
-
-    let short_text_type = ctx.at(groonga::GRN_DB_SHORT_TEXT).unwrap();
-    let text_type = ctx.at(groonga::GRN_DB_TEXT).unwrap();
-    let time_type = ctx.at(groonga::GRN_DB_TIME).unwrap();
-
-    let table = ctx.table_open_or_create("Articles", "",
-        groonga::GRN_OBJ_TABLE_HASH_KEY | groonga::GRN_OBJ_PERSISTENT,
-        &short_text_type, None).unwrap();
-    let _ = ctx.column_open_or_create(&table, "title", "", 
-        groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
-        &short_text_type);
-    let _ = ctx.column_open_or_create(&table, "content", "", 
-        groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
-        &text_type);
-    let _ = ctx.column_open_or_create(&table, "updated_at", "", 
-        groonga::GRN_OBJ_PERSISTENT | groonga::GRN_OBJ_COLUMN_SCALAR,
-        &time_type);
+    let ctx = Rc::new(rusroonga::Context::new().unwrap());
+    let db = Database::open_or_create(ctx.clone(), path).unwrap();
+    assert_eq!(path, db.path().unwrap());
+    assert!(fs::metadata(path).unwrap().is_file());
 }

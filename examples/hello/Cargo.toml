@@ -5,3 +5,6 @@ authors = ["Hiroaki Nakamura <hnakamur@gmail.com>"]
 
 [dependencies.rusroonga]
 path = "../.."
+
+[dependencies]
+tempdir = "*"
