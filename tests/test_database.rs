@@ -1,7 +1,7 @@
 extern crate rusroonga;
 extern crate tempdir;
 
-use rusroonga::{Database, groonga};
+use rusroonga::Database;
 use std::{env, fs};
 use std::rc::Rc;
 
@@ -16,7 +16,7 @@ fn test_open_non_existent_database() {
 
     let ctx = Rc::new(rusroonga::Context::new().unwrap());
     match Database::open(ctx.clone(), path) {
-        Err(e) => assert_eq!(groonga::GRN_NO_SUCH_FILE_OR_DIRECTORY, e.code),
+        Err(e) => assert_eq!(rusroonga::NO_SUCH_FILE_OR_DIRECTORY, e.code),
         Ok(_) => assert!(false, "should fail to open database"),
     }
 }
