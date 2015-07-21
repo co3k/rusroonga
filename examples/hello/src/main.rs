@@ -25,11 +25,21 @@ fn main() {
 
     let column1_name = "column1";
     let column1_path = table1_path + &".column1";
-    let _column1 = grn::Column::open_or_create(
+    let mut column1 = grn::Column::open_or_create(
         ctx.clone(), &table1, column1_name, Some(&column1_path),
         grn::OBJ_PERSISTENT | grn::OBJ_COLUMN_SCALAR,
         &grn::Context::at(ctx.clone(), grn::DB_TEXT).unwrap()).unwrap();
 
     let (id, added) = table1.add_record(Some("foo"));
-    println!("id={}, added={}", id, added)
+    println!("id={}, added={}", id, added);
+
+    let rv = column1.set_string(id, Some("some long text which is more than 32 characters"));
+    assert!(rv.is_ok());
+    println!("column1_val={}", column1.get_string(id));
+    assert_eq!("some long text which is more than 32 characters", column1.get_string(id));
+
+    let rv = column1.set_string(id, Some("bar"));
+    assert!(rv.is_ok());
+    println!("column1_val={}", column1.get_string(id));
+    assert_eq!("bar", column1.get_string(id))
 }

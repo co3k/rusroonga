@@ -1,7 +1,9 @@
+//extern crate core;
 extern crate libc;
 
 mod groonga;
 
+//use core::array::FixedSizeArray;
 use libc::funcs::c95::string;
 use std::ffi::{CStr, CString};
 use std::{mem, str};
@@ -157,6 +159,121 @@ pub const DB_TEXT: u32 = groonga::GRN_DB_TEXT;
 pub const DB_LONG_TEXT: u32 = groonga::GRN_DB_LONG_TEXT;
 pub const DB_TOKYO_GEO_POINT: u32 = groonga::GRN_DB_TOKYO_GEO_POINT;
 pub const DB_WGS84_GEO_POINT: u32 = groonga::GRN_DB_WGS84_GEO_POINT;
+
+// obj_flags values
+pub const OBJ_REFER            :libc::c_uchar = (0x01<<0);
+pub const OBJ_OUTPLACE         :libc::c_uchar = (0x01<<1);
+pub const OBJ_DO_SHALLOW_COPY  :libc::c_uchar = (OBJ_REFER|OBJ_OUTPLACE);
+pub const OBJ_VECTOR           :libc::c_uchar = (0x01<<7);
+
+// grn_obj_set_value flags values
+pub const OBJ_SET_MASK  :libc::c_int = (0x07);
+pub const OBJ_SET       :libc::c_int = (0x01);
+pub const OBJ_INCR      :libc::c_int = (0x02);
+pub const OBJ_DECR      :libc::c_int = (0x03);
+pub const OBJ_APPEND    :libc::c_int = (0x04);
+pub const OBJ_PREPEND   :libc::c_int = (0x05);
+pub const OBJ_GET       :libc::c_int = (0x01<<4);
+pub const OBJ_COMPARE   :libc::c_int = (0x01<<5);
+pub const OBJ_LOCK      :libc::c_int = (0x01<<6);
+pub const OBJ_UNLOCK    :libc::c_int = (0x01<<7);
+
+#[inline]
+fn obj_init(obj: *mut groonga::grn_obj, obj_type: libc::c_uchar, obj_flags: libc::c_uchar, obj_domain: libc::c_uint) {
+    unsafe {
+        (*obj).header._type = obj_type;
+        (*obj).header.impl_flags = obj_flags;
+        (*obj).header.flags = 0;
+        (*obj).header.domain = obj_domain;
+        let b = (*obj).u.b();
+        (*b).head = mem::zeroed();
+        (*b).curr = mem::zeroed();
+        (*b).tail = mem::zeroed();
+    }
+}
+
+#[inline]
+fn value_fix_size_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar, obj_domain: libc::c_uint) {
+    let obj_type = if obj_flags & OBJ_VECTOR != 0 {
+        groonga::GRN_UVECTOR as u8
+    } else {
+        groonga::GRN_BULK as u8
+    };
+    obj_init(obj, obj_type, obj_flags & OBJ_DO_SHALLOW_COPY, obj_domain)
+}
+
+#[inline]
+fn value_var_size_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar, obj_domain: libc::c_uint) {
+    let obj_type = if obj_flags & OBJ_VECTOR != 0 {
+        groonga::GRN_VECTOR as u8
+    } else {
+        groonga::GRN_BULK as u8
+    };
+    obj_init(obj, obj_type, obj_flags & OBJ_DO_SHALLOW_COPY, obj_domain)
+}
+
+#[inline]
+fn text_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar) {
+    value_var_size_init(obj, obj_flags, groonga::GRN_DB_TEXT)
+}
+
+#[inline]
+fn text_put(ctx: *mut groonga::grn_ctx, bulk: *mut groonga::grn_obj,
+             str: *const ::libc::c_char, len: ::libc::c_uint) -> groonga::grn_rc {
+    unsafe {
+        groonga::grn_bulk_write(ctx, bulk, str, len)
+    }
+}
+
+#[inline]
+fn bulk_outp(bulk: *const groonga::grn_obj) -> bool {
+    unsafe {
+        (*bulk).header.impl_flags & OBJ_OUTPLACE != 0
+    }
+}
+
+/* This assumes that GRN_BULK_BUFSIZE is less than 32 (= 0x20). */
+const BULK_BUFSIZE_MAX: u16 = 0x1f;
+
+#[inline]
+fn bulk_size_in_flags(flags: u16) -> u16 {
+    flags & BULK_BUFSIZE_MAX
+}
+
+// NOTE: bulk is need to be mutable because of b(&mut self)
+#[inline]
+fn bulk_vsize(bulk: *mut groonga::grn_obj) -> usize {
+    unsafe {
+        if bulk_outp(bulk) {
+            let b = (*bulk).u.b();
+            (*b).curr as usize - (*b).head as usize
+        } else {
+            bulk_size_in_flags((*bulk).header.flags) as usize
+        }
+    }
+}
+
+#[inline]
+fn bulk_head(bulk: *mut groonga::grn_obj) -> *mut libc::c_char {
+    unsafe {
+        if bulk_outp(bulk) {
+            (*((*bulk).u.b())).head
+        } else {
+            let raw: *mut i8 = ::std::mem::transmute(&(*((*bulk).u.b())).head);
+            ::std::mem::transmute(raw.offset(0))
+        }
+    }
+}
+
+#[inline]
+fn text_len(obj: *mut groonga::grn_obj) -> usize {
+    bulk_vsize(obj)
+}
+
+#[inline]
+fn text_value(obj: *mut groonga::grn_obj) -> *mut libc::c_char {
+    bulk_head(obj)
+}
 
 #[derive(Debug)]
 pub struct Error {
@@ -397,6 +514,8 @@ impl Database {
     }
 }
 
+pub type ID = groonga::grn_id;
+
 pub struct Table {
     object: Object
 }
@@ -441,7 +560,7 @@ impl Table {
         }
     }
 
-    pub fn add_record(&mut self, key: Option<&str>) -> (u32, bool) {
+    pub fn add_record(&mut self, key: Option<&str>) -> (ID, bool) {
         unsafe {
             let c_key = match key {
                 Some(k) => CString::new(k).unwrap().as_ptr(),
@@ -515,6 +634,39 @@ impl Column {
         match Column::open(context.clone(), table, name) {
             None => Column::create(context, table, name, path, flags, column_type),
             Some(col) => Ok(col)
+        }
+    }
+
+    pub fn set_string(&mut self, record_id: ID, s: Option<&str>) -> Result<(), Error> {
+        unsafe {
+            let c_s = match s {
+                Some(s) => CString::new(s).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+
+            let mut buf = groonga::grn_obj::default();
+            text_init(&mut buf, 0);
+            text_put(self.object.context.ctx, &mut buf, c_s,
+                     string::strlen(c_s) as u32);
+            let rc = groonga::grn_obj_set_value(
+                self.object.context.ctx, self.object.obj, record_id, &mut buf,
+                OBJ_SET);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            Ok(())
+        }
+    }
+
+    pub fn get_string(&self, record_id: ID) -> String {
+        let mut buf = groonga::grn_obj::default();
+        text_init(&mut buf, 0);
+        unsafe {
+            groonga::grn_obj_get_value(
+                self.object.context.ctx, self.object.obj, record_id, &mut buf);
+            let head = text_value(&mut buf) as *const u8;
+            let size = text_len(&mut buf);
+            str::from_utf8(std::slice::from_raw_parts(head, size)).unwrap().to_string()
         }
     }
 
