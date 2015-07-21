@@ -316,6 +316,10 @@ impl Drop for Object {
 }
 
 impl Object {
+    fn new(context: Rc<Context>, obj: *mut groonga::grn_obj) -> Object {
+        Object{context: context, obj: obj}
+    }
+
     pub fn close(&mut self) {
         unsafe {
             if self.obj.is_null() {
@@ -374,11 +378,14 @@ impl Object {
 }
 
 pub struct Database {
-    context: Rc<Context>,
-    db: *mut groonga::grn_obj,
+    object: Object
 }
 
 impl Database {
+    fn from_object(object: Object) -> Database {
+        Database{ object: object }
+    }
+
     pub fn create(context: Rc<Context>, path: &str) -> Result<Database, Error> {
         let c_path = CString::new(path).unwrap();
         unsafe {
@@ -387,7 +394,7 @@ impl Database {
             if db.is_null() {
                 return Err(Error::new((*context.ctx).rc))
             }
-            Ok(Database{ context: context, db: db })
+            Ok(Database::from_object(Object::new(context, db)))
         }
     }
 
@@ -398,7 +405,7 @@ impl Database {
             if db.is_null() {
                 return Err(Error::new((*context.ctx).rc))
             }
-            Ok(Database{ context: context, db: db })
+            Ok(Database::from_object(Object::new(context, db)))
         }
     }
 
@@ -414,32 +421,20 @@ impl Database {
         }
     }
 
+    pub fn name(&self) -> Option<&str> {
+        self.object.name()
+    }
+
     pub fn path(&self) -> Option<&str> {
-        if self.db.is_null() {
-            return None
-        }
-        obj_path(self.context.clone(), self.db)
+        self.object.path()
     }
 
     pub fn remove(&mut self) -> Result<(), Error> {
-        unsafe {
-            if self.db.is_null() {
-                return Err(Error::new(groonga::GRN_INVALID_ARGUMENT))
-            }
-            let rv = remove_obj(self.context.clone(), self.db);
-            self.db = mem::zeroed();
-            rv
-        }
+        self.object.remove()
     }
 
     pub fn close(&mut self) {
-        unsafe {
-            if self.db.is_null() {
-                return
-            }
-            close_obj(self.context.clone(), self.db);
-            self.db = mem::zeroed()
-        }
+        self.object.close()
     }
 }
 
@@ -469,7 +464,7 @@ impl Table {
             if tbl.is_null() {
                 return Err(Error::new((*context.ctx).rc))
             }
-            Ok(Table::from_object(Object{ context: context, obj: tbl }))
+            Ok(Table::from_object(Object::new(context, tbl)))
         }
     }
 
@@ -501,31 +496,5 @@ impl Table {
 
     pub fn close(&mut self) {
         self.object.close()
-    }
-}
-
-fn obj_path<'a>(context: Rc<Context>, obj: *mut groonga::grn_obj) -> Option<&'a str> {
-    unsafe {
-        let path = groonga::grn_obj_path(context.ctx, obj);
-        if path.is_null() {
-            return None
-        }
-        Some(str::from_utf8(CStr::from_ptr(path).to_bytes()).unwrap())
-    }
-}
-
-fn remove_obj(context: Rc<Context>, obj: *mut groonga::grn_obj) -> Result<(), Error> {
-    unsafe {
-        let rc = groonga::grn_obj_remove(context.ctx, obj);
-        if rc != groonga::GRN_SUCCESS {
-            return Err(Error::new(rc))
-        }
-    }
-    Ok(())
-}
-
-fn close_obj(context: Rc<Context>, obj: *mut groonga::grn_obj) {
-    unsafe {
-        groonga::grn_obj_unlink(context.ctx, obj);
     }
 }

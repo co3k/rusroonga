@@ -15,7 +15,7 @@ fn test_context_at() {
     let path = buf.to_str().unwrap();
 
     let ctx = Rc::new(Context::new().unwrap());
-    Database::create(ctx.clone(), path).unwrap();
+    let _db = Database::create(ctx.clone(), path).unwrap();
 
     let obj = Context::at(ctx.clone(), rusroonga::DB_SHORT_TEXT);
     assert!(obj.is_some());
