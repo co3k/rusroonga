@@ -121,3 +121,30 @@ fn test_remove_table() {
     assert!(rv.is_ok(), "failed to remove table");
     assert!(fs::metadata(&table1_path).is_err(), "table file should not exist")
 }
+
+#[test]
+fn test_add_record() {
+    grn::Groonga::new().unwrap();
+
+    let work_dir = tempdir::TempDir::new(env::temp_dir().to_str().unwrap()).unwrap();
+    let mut buf = work_dir.into_path();
+    buf.push("test.db");
+    let path = buf.to_str().unwrap();
+
+    let ctx = Rc::new(grn::Context::new().unwrap());
+    let db = grn::Database::create(ctx.clone(), path).unwrap();
+
+    let table1_name = "Table1";
+    let table1_path = db.path().unwrap().to_string() + &".Table1";
+    let mut table1 = grn::Table::create(
+        ctx.clone(), table1_name, Some(&table1_path),
+        grn::OBJ_TABLE_HASH_KEY | grn::OBJ_PERSISTENT,
+        &grn::Context::at(ctx.clone(), grn::DB_SHORT_TEXT).unwrap(),
+        None).unwrap();
+
+    let (id, added) = table1.add_record(Some("foo"));
+    assert!(added, "record should be added");
+    let (id2, added) = table1.add_record(Some("foo"));
+    assert!(!added, "record should not be added because it already exists");
+    assert_eq!(id, id2)
+}

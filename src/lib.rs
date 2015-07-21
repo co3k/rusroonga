@@ -441,6 +441,20 @@ impl Table {
         }
     }
 
+    pub fn add_record(&mut self, key: Option<&str>) -> (u32, bool) {
+        unsafe {
+            let c_key = match key {
+                Some(k) => CString::new(k).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+            let mut c_added: libc::c_int = 0;
+            let id = groonga::grn_table_add(
+                self.object.context.ctx, self.object.obj,
+                c_key as *const libc::c_void, string::strlen(c_key) as u32, &mut c_added);
+            (id, c_added != 0)
+        }
+    }
+
     pub fn name(&self) -> Option<&str> {
         self.object.name()
     }
