@@ -33,13 +33,11 @@ fn main() {
     let (id, added) = table1.add_record(Some("foo"));
     println!("id={}, added={}", id, added);
 
-    let rv = column1.set_string(id, Some("some long text which is more than 32 characters"));
+    let rv = column1.set_string(id, "some long text which is more than 32 characters");
     assert!(rv.is_ok());
     println!("column1_val={}", column1.get_string(id));
-    assert_eq!("some long text which is more than 32 characters", column1.get_string(id));
 
-    let rv = column1.set_string(id, Some("bar"));
+    let rv = column1.set_string(id, "bar");
     assert!(rv.is_ok());
     println!("column1_val={}", column1.get_string(id));
-    assert_eq!("bar", column1.get_string(id))
 }

@@ -190,7 +190,7 @@ fn test_set_string() {
         &grn::Context::at(ctx.clone(), grn::DB_TEXT).unwrap()).unwrap();
 
     let (id, _added) = table1.add_record(Some("foo"));
-    let rv = column1.set_string(id, Some("bar"));
+    let rv = column1.set_string(id, "bar");
     assert!(rv.is_ok());
 }
 
@@ -226,12 +226,12 @@ fn test_get_string() {
     assert!(id != 0, "id should not be zero");
 
     let column1_value = "short value";
-    let rv = column1.set_string(id, Some(column1_value));
+    let rv = column1.set_string(id, column1_value);
     assert!(rv.is_ok());
     assert_eq!(column1_value, column1.get_string(id));
 
     let column1_value = "Some long text value which is longer than 32 bytes.";
-    let rv = column1.set_string(id, Some(column1_value));
+    let rv = column1.set_string(id, column1_value);
     assert!(rv.is_ok());
     assert_eq!(column1_value, column1.get_string(id))
 }

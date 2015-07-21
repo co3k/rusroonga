@@ -637,13 +637,9 @@ impl Column {
         }
     }
 
-    pub fn set_string(&mut self, record_id: ID, s: Option<&str>) -> Result<(), Error> {
+    pub fn set_string(&mut self, record_id: ID, s: &str) -> Result<(), Error> {
         unsafe {
-            let c_s = match s {
-                Some(s) => CString::new(s).unwrap().as_ptr(),
-                None => mem::zeroed()
-            };
-
+            let c_s = CString::new(s).unwrap().as_ptr();
             let mut buf = groonga::grn_obj::default();
             text_init(&mut buf, 0);
             text_put(self.object.context.ctx, &mut buf, c_s,
