@@ -88,6 +88,56 @@ pub const COMMAND_ERROR: i32 = groonga::GRN_COMMAND_ERROR;
 pub const PLUGIN_ERROR: i32 = groonga::GRN_PLUGIN_ERROR;
 pub const SCORER_ERROR: i32 = groonga::GRN_SCORER_ERROR;
 
+
+pub const OBJ_TABLE_TYPE_MASK:        u16 = groonga::GRN_OBJ_TABLE_TYPE_MASK as u16;
+pub const OBJ_TABLE_HASH_KEY:         u16 = groonga::GRN_OBJ_TABLE_HASH_KEY as u16;
+pub const OBJ_TABLE_PAT_KEY:          u16 = groonga::GRN_OBJ_TABLE_PAT_KEY as u16;
+pub const OBJ_TABLE_DAT_KEY:          u16 = groonga::GRN_OBJ_TABLE_DAT_KEY as u16;
+pub const OBJ_TABLE_NO_KEY:           u16 = groonga::GRN_OBJ_TABLE_NO_KEY as u16;
+
+pub const OBJ_KEY_MASK:               u16 = groonga::GRN_OBJ_KEY_MASK as u16;
+pub const OBJ_KEY_UINT:               u16 = groonga::GRN_OBJ_KEY_UINT as u16;
+pub const OBJ_KEY_INT:                u16 = groonga::GRN_OBJ_KEY_INT as u16;
+pub const OBJ_KEY_FLOAT:              u16 = groonga::GRN_OBJ_KEY_FLOAT as u16;
+pub const OBJ_KEY_GEO_POINT:          u16 = groonga::GRN_OBJ_KEY_GEO_POINT as u16;
+
+pub const OBJ_KEY_WITH_SIS:           u16 = groonga::GRN_OBJ_KEY_WITH_SIS as u16;
+pub const OBJ_KEY_NORMALIZE:          u16 = groonga::GRN_OBJ_KEY_NORMALIZE as u16;
+
+pub const OBJ_COLUMN_TYPE_MASK:       u16 = groonga::GRN_OBJ_COLUMN_TYPE_MASK as u16;
+pub const OBJ_COLUMN_SCALAR:          u16 = groonga::GRN_OBJ_COLUMN_SCALAR as u16;
+pub const OBJ_COLUMN_VECTOR:          u16 = groonga::GRN_OBJ_COLUMN_VECTOR as u16;
+pub const OBJ_COLUMN_INDEX:           u16 = groonga::GRN_OBJ_COLUMN_INDEX as u16;
+
+pub const OBJ_COMPRESS_MASK:          u16 = groonga::GRN_OBJ_COMPRESS_MASK as u16;
+pub const OBJ_COMPRESS_NONE:          u16 = groonga::GRN_OBJ_COMPRESS_NONE as u16;
+pub const OBJ_COMPRESS_ZLIB:          u16 = groonga::GRN_OBJ_COMPRESS_ZLIB as u16;
+pub const OBJ_COMPRESS_LZ4:           u16 = groonga::GRN_OBJ_COMPRESS_LZ4 as u16;
+
+pub const OBJ_WITH_SECTION:           u16 = groonga::GRN_OBJ_WITH_SECTION as u16;
+pub const OBJ_WITH_WEIGHT:            u16 = groonga::GRN_OBJ_WITH_WEIGHT as u16;
+pub const OBJ_WITH_POSITION:          u16 = groonga::GRN_OBJ_WITH_POSITION as u16;
+pub const OBJ_RING_BUFFER:            u16 = groonga::GRN_OBJ_RING_BUFFER as u16;
+
+pub const OBJ_UNIT_MASK:              u16 = groonga::GRN_OBJ_UNIT_MASK as u16;
+pub const OBJ_UNIT_DOCUMENT_NONE:     u16 = groonga::GRN_OBJ_UNIT_DOCUMENT_NONE as u16;
+pub const OBJ_UNIT_DOCUMENT_SECTION:  u16 = groonga::GRN_OBJ_UNIT_DOCUMENT_SECTION as u16;
+pub const OBJ_UNIT_DOCUMENT_POSITION: u16 = groonga::GRN_OBJ_UNIT_DOCUMENT_POSITION as u16;
+pub const OBJ_UNIT_SECTION_NONE:      u16 = groonga::GRN_OBJ_UNIT_SECTION_NONE as u16;
+pub const OBJ_UNIT_SECTION_POSITION:  u16 = groonga::GRN_OBJ_UNIT_SECTION_POSITION as u16;
+pub const OBJ_UNIT_POSITION_NONE:     u16 = groonga::GRN_OBJ_UNIT_POSITION_NONE as u16;
+pub const OBJ_UNIT_USERDEF_DOCUMENT:  u16 = groonga::GRN_OBJ_UNIT_USERDEF_DOCUMENT as u16;
+pub const OBJ_UNIT_USERDEF_SECTION:   u16 = groonga::GRN_OBJ_UNIT_USERDEF_SECTION as u16;
+pub const OBJ_UNIT_USERDEF_POSITION:  u16 = groonga::GRN_OBJ_UNIT_USERDEF_POSITION as u16;
+
+pub const OBJ_NO_SUBREC:              u16 = groonga::GRN_OBJ_NO_SUBREC as u16;
+pub const OBJ_WITH_SUBREC:            u16 = groonga::GRN_OBJ_WITH_SUBREC as u16;
+
+pub const OBJ_KEY_VAR_SIZE:           u16 = groonga::GRN_OBJ_KEY_VAR_SIZE as u16;
+
+pub const OBJ_TEMPORARY:              u16 = groonga::GRN_OBJ_TEMPORARY as u16;
+pub const OBJ_PERSISTENT:             u16 = groonga::GRN_OBJ_PERSISTENT as u16;
+
 pub const DB_VOID: u32 = groonga::GRN_DB_VOID;
 pub const DB_DB: u32 = groonga::GRN_DB_DB;
 pub const DB_OBJECT: u32 = groonga::GRN_DB_OBJECT;
@@ -198,18 +248,6 @@ impl Context {
         }
     }
 
-//    pub fn ctx_get(&mut self, name: &str) -> Result<Object, Error> {
-//        let c_name = CString::new(name).unwrap().as_ptr();
-//        unsafe {
-//            let obj = groonga::grn_ctx_get(
-//                self.ctx, c_name, string::strlen(c_name) as i32);
-//            if obj.is_null() {
-//                return Err(Error::new((*self.ctx).rc))
-//            }
-//            Ok(Object { context: self, obj: obj })
-//        }
-//    }
-//
     pub fn close(&mut self) -> Result<(), Error> {
         unsafe {
             if self.ctx.is_null() {
@@ -283,9 +321,55 @@ impl Object {
             if self.obj.is_null() {
                 return
             }
-            close_obj(self.context.clone(), self.obj);
+            groonga::grn_obj_unlink(self.context.ctx, self.obj);
             self.obj = mem::zeroed()
         }
+    }
+
+    fn path(&self) -> Option<&str> {
+        unsafe {
+            if self.obj.is_null() {
+                return None
+            }
+            let path = groonga::grn_obj_path(self.context.ctx, self.obj);
+            if path.is_null() {
+                return None
+            }
+            Some(str::from_utf8(CStr::from_ptr(path).to_bytes()).unwrap())
+        }
+    }
+
+    fn name(&self) -> Option<&str> {
+        unsafe {
+            if self.obj.is_null() {
+                return None
+            }
+            let length = groonga::grn_obj_name(self.context.ctx, self.obj, mem::zeroed(), 0);
+            if length == 0 {
+                return Some("")
+            }
+            let buf = libc::malloc(
+                mem::size_of::<libc::c_char>() as u64 * length as u64
+            ) as *mut libc::c_char;
+            groonga::grn_obj_name(self.context.ctx, self.obj, buf, length);
+            let name = str::from_utf8(CStr::from_ptr(buf).to_bytes()).unwrap();
+            libc::free(buf as *mut libc::c_void);
+            Some(name)
+        }
+    }
+
+    fn remove(&mut self) -> Result<(), Error> {
+        unsafe {
+            if self.obj.is_null() {
+                return Err(Error::new(groonga::GRN_INVALID_ARGUMENT))
+            }
+            let rc = groonga::grn_obj_remove(self.context.ctx, self.obj);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            self.obj = mem::zeroed()
+        }
+        Ok(())
     }
 }
 
@@ -360,7 +444,7 @@ impl Database {
 }
 
 pub struct Table {
-    object: Object,
+    object: Object
 }
 
 impl Table {
@@ -368,64 +452,56 @@ impl Table {
         Table{ object: object }
     }
 
-//    pub fn create(context: Rc<Context>, path: &str) -> Result<Table, Error> {
-//        let c_path = CString::new(path).unwrap();
-//        unsafe {
-//            let tbl = groonga::grn_db_create(
-//                context.ctx, c_path.as_ptr(), mem::zeroed());
-//            if tbl.is_null() {
-//                return Err(Error::new((*context.ctx).rc))
-//            }
-//            Ok(Table{ context: context, tbl: tbl })
-//        }
-//    }
-//
+    pub fn create(context: Rc<Context>, name: &str, path: Option<&str>, flags: u16, key_type: &Object, value_type: Option<&Object>) -> Result<Table, Error> {
+        unsafe {
+            let c_name = CString::new(name).unwrap().as_ptr();
+            let c_path = match path {
+                Some(p) => CString::new(p).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+            let c_value_type = match value_type {
+                Some(vt) => vt.obj,
+                None => mem::zeroed()
+            };
+            let tbl = groonga::grn_table_create(
+                context.ctx, c_name, string::strlen(c_name) as u32,
+                c_path, flags, key_type.obj, c_value_type);
+            if tbl.is_null() {
+                return Err(Error::new((*context.ctx).rc))
+            }
+            Ok(Table::from_object(Object{ context: context, obj: tbl }))
+        }
+    }
+
     pub fn open(context: Rc<Context>, name: &str) -> Option<Table> {
         match Context::get(context, name) {
             Some(object) => Some(Table::from_object(object)),
             None => None
         }
     }
-//
-//    pub fn open_or_create(context: Rc<Context>, path: &str) -> Result<Table, Error> {
-//        match Table::open(context.clone(), path) {
-//            Err(e) => {
-//                if e.code == groonga::GRN_NO_SUCH_FILE_OR_DIRECTORY {
-//                    return Table::create(context.clone(), path)
-//                }
-//                Err(e)
-//            },
-//            Ok(tbl) => Ok(tbl)
-//        }
-//    }
-//
-//    pub fn path(&self) -> Option<&str> {
-//        if self.tbl.is_null() {
-//            return None
-//        }
-//        obj_path(self.context.clone(), self.tbl)
-//    }
-//
-//    pub fn remove(&mut self) -> Result<(), Error> {
-//        unsafe {
-//            if self.tbl.is_null() {
-//                return Err(Error::new(groonga::GRN_INVALID_ARGUMENT))
-//            }
-//            let rv = remove_obj(self.context.clone(), self.tbl);
-//            self.tbl = mem::zeroed();
-//            rv
-//        }
-//    }
-//
-//    pub fn close(&mut self) {
-//        unsafe {
-//            if self.tbl.is_null() {
-//                return
-//            }
-//            close_obj(self.context.clone(), self.tbl);
-//            self.tbl = mem::zeroed()
-//        }
-//    }
+
+    pub fn open_or_create(context: Rc<Context>, name: &str, path: Option<&str>, flags: u16, key_type: &Object, value_type: Option<&Object>) -> Result<Table, Error> {
+        match Table::open(context.clone(), name) {
+            None => Table::create(context, name, path, flags, key_type, value_type),
+            Some(tbl) => Ok(tbl)
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.object.name()
+    }
+
+    pub fn path(&self) -> Option<&str> {
+        self.object.path()
+    }
+
+    pub fn remove(&mut self) -> Result<(), Error> {
+        self.object.remove()
+    }
+
+    pub fn close(&mut self) {
+        self.object.close()
+    }
 }
 
 fn obj_path<'a>(context: Rc<Context>, obj: *mut groonga::grn_obj) -> Option<&'a str> {
