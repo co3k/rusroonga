@@ -261,47 +261,6 @@ impl Context {
             Ok(())
         }
     }
-
-//    pub fn obj_column(&mut self, table: &Object, name: &str)
-//        -> Result<Object, Error> {
-//        let c_name = CString::new(name).unwrap().as_ptr();
-//        unsafe {
-//            let obj = groonga::grn_obj_column(
-//                self.ctx, table.obj, c_name, string::strlen(c_name) as u32);
-//            if obj.is_null() {
-//                return Err(Error::new((*self.ctx).rc))
-//            }
-//            Ok(Object { context: self, obj: obj })
-//        }
-//    }
-//
-//    pub fn column_create(&mut self, table: &Object, name: &str, path: &str,
-//        flags: u32, _type: &Object) -> Result<Object, Error> {
-//        let c_name = CString::new(name).unwrap().as_ptr();
-//        let c_path = if path != "" {
-//            CString::new(path).unwrap().as_ptr()
-//        } else {
-//            ptr::null()
-//        };
-//        unsafe {
-//            let column = groonga::grn_column_create(
-//                self.ctx, table.obj, c_name, string::strlen(c_name) as u32,
-//                c_path, flags as u16, _type.obj);
-//            if column.is_null() {
-//                return Err(Error::new((*self.ctx).rc))
-//            }
-//            Ok(Object { context: self, obj: column })
-//        }
-//    }
-//
-//    pub fn column_open_or_create(&mut self, table: &Object, name: &str,
-//        path: &str, flags: u32, _type: &Object) -> Result<Object, Error> {
-//        if let Ok(column) = self.obj_column(&table, name) {
-//            Ok(column)
-//        } else {
-//            self.column_create(&table, name, path, flags, _type)
-//        }
-//    }
 }
 
 pub struct Object {
@@ -479,6 +438,69 @@ impl Table {
         match Table::open(context.clone(), name) {
             None => Table::create(context, name, path, flags, key_type, value_type),
             Some(tbl) => Ok(tbl)
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.object.name()
+    }
+
+    pub fn path(&self) -> Option<&str> {
+        self.object.path()
+    }
+
+    pub fn remove(&mut self) -> Result<(), Error> {
+        self.object.remove()
+    }
+
+    pub fn close(&mut self) {
+        self.object.close()
+    }
+}
+
+pub struct Column {
+    object: Object
+}
+
+impl Column {
+    fn from_object(object: Object) -> Column {
+        Column{ object: object }
+    }
+
+    pub fn create(context: Rc<Context>, table: &Table, name: &str, path: Option<&str>, flags: u16, column_type: &Object) -> Result<Column, Error> {
+        unsafe {
+            let c_name = CString::new(name).unwrap().as_ptr();
+            let c_path = match path {
+                Some(p) => CString::new(p).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+            let tbl = groonga::grn_column_create(
+                context.ctx, table.object.obj,
+                c_name, string::strlen(c_name) as u32,
+                c_path, flags, column_type.obj);
+            if tbl.is_null() {
+                return Err(Error::new((*context.ctx).rc))
+            }
+            Ok(Column::from_object(Object::new(context, tbl)))
+        }
+    }
+
+    pub fn open(context: Rc<Context>, table: &Table, name: &str) -> Option<Column> {
+        let c_name = CString::new(name).unwrap().as_ptr();
+        unsafe {
+            let col = groonga::grn_obj_column(
+                context.ctx, table.object.obj, c_name, string::strlen(c_name) as u32);
+            if col.is_null() {
+                return None
+            }
+            Some(Column::from_object(Object::new(context, col)))
+        }
+    }
+
+    pub fn open_or_create(context: Rc<Context>, table: &Table, name: &str, path: Option<&str>, flags: u16, column_type: &Object) -> Result<Column, Error> {
+        match Column::open(context.clone(), table, name) {
+            None => Column::create(context, table, name, path, flags, column_type),
+            Some(col) => Ok(col)
         }
     }
 
