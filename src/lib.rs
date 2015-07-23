@@ -1,5 +1,6 @@
 //extern crate core;
 extern crate libc;
+extern crate time;
 
 mod groonga;
 
@@ -203,6 +204,30 @@ fn value_fix_size_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar, obj
 }
 
 #[inline]
+fn time_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar) {
+    value_fix_size_init(obj, obj_flags, DB_TIME)
+}
+
+#[inline]
+fn int64_set(ctx: *mut groonga::grn_ctx, obj: *mut groonga::grn_obj, val: i64)  -> Result<(), Error> {
+    let work = val;
+    unsafe {
+        let raw: *mut libc::c_char = ::std::mem::transmute(&work);
+        let rc = groonga::grn_bulk_write_from(ctx, obj, raw, 0, mem::size_of::<i64>() as u32);
+        if rc != groonga::GRN_SUCCESS {
+            return Err(Error::new(rc))
+        }
+        Ok(())
+    }
+}
+
+#[inline]
+fn time_set(ctx: *mut groonga::grn_ctx, obj: *mut groonga::grn_obj, val: time::Timespec) -> Result<(), Error> {
+    let micro_sec = val.sec * 1_000_000 + (val.nsec / 1_000) as i64;
+    int64_set(ctx, obj, micro_sec)
+}
+
+#[inline]
 fn value_var_size_init(obj: *mut groonga::grn_obj, obj_flags: libc::c_uchar, obj_domain: libc::c_uint) {
     let obj_type = if obj_flags & OBJ_VECTOR != 0 {
         groonga::GRN_VECTOR as u8
@@ -273,6 +298,22 @@ fn text_len(obj: *mut groonga::grn_obj) -> usize {
 #[inline]
 fn text_value(obj: *mut groonga::grn_obj) -> *mut libc::c_char {
     bulk_head(obj)
+}
+
+#[inline]
+fn int64_value(obj: *mut groonga::grn_obj) -> i64 {
+    unsafe {
+        let ptr: *mut i64 = ::std::mem::transmute(bulk_head(obj));
+        *ptr
+    }
+}
+
+#[inline]
+fn time_value(obj: *mut groonga::grn_obj) -> time::Timespec {
+    let micro_sec = int64_value(obj);
+    let sec = micro_sec / 1_000_000;
+    let nano_sec: i32 = (micro_sec % 1_000_000) as i32 * 1_000;
+    return time::Timespec::new(sec, nano_sec)
 }
 
 #[derive(Debug)]
@@ -663,6 +704,38 @@ impl Column {
             let head = text_value(&mut buf) as *const u8;
             let size = text_len(&mut buf);
             str::from_utf8(std::slice::from_raw_parts(head, size)).unwrap().to_string()
+        }
+    }
+
+    pub fn set_time(&mut self, record_id: ID, t: time::Timespec) -> Result<(), Error> {
+        unsafe {
+            let mut buf = groonga::grn_obj::default();
+            time_init(&mut buf, 0);
+            match time_set(self.object.context.ctx, &mut buf, t) {
+                Ok(_) => (),
+                Err(e) => return Err(e)
+            }
+            let rc = groonga::grn_obj_set_value(
+                self.object.context.ctx, self.object.obj, record_id, &mut buf,
+                OBJ_SET);
+            if rc != groonga::GRN_SUCCESS {
+                return Err(Error::new(rc))
+            }
+            Ok(())
+        }
+    }
+
+    pub fn get_time(&self, record_id: ID) -> time::Timespec {
+        let mut buf = groonga::grn_obj::default();
+        time_init(&mut buf, 0);
+        unsafe {
+            groonga::grn_obj_get_value(
+                self.object.context.ctx, self.object.obj, record_id, &mut buf);
+            if bulk_vsize(&mut buf) != 0 {
+                time_value(&mut buf)
+            } else {
+                time::Timespec::new(0, 0)
+            }
         }
     }
 
