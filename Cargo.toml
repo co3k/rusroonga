@@ -7,3 +7,4 @@ license = "Apache-2.0"
 [dependencies]
 libc = "*"
 tempdir = "*"
+time = "0.1"
