@@ -629,6 +629,33 @@ impl Table {
         }
     }
 
+    pub fn pat_scan(&mut self, string: Option<&str>) -> (i32, groonga::grn_pat_scan_hit, &str) {
+        unsafe {
+            let c_string = match string {
+                Some(s) => CString::new(s).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+
+            let mut hits: groonga::grn_pat_scan_hit = mem::uninitialized();
+
+            let c_path = CString::new(self.path().unwrap()).unwrap();
+
+            let pat = groonga::grn_pat_open(self.object.context.ctx, c_path.as_ptr());
+            let mut rest: *const libc::c_char = mem::uninitialized();
+            let nhit = groonga::grn_pat_scan(
+                self.object.context.ctx, pat,
+                c_string, string::strlen(c_string) as u32,
+                &mut hits, 1024,
+                &mut rest
+            );
+            groonga::grn_pat_close(self.object.context.ctx, pat);
+
+            let r_rest = str::from_utf8(CStr::from_ptr(rest).to_bytes()).unwrap();
+
+            (nhit, hits, r_rest)
+        }
+    }
+
     pub fn name(&self) -> Option<&str> {
         self.object.name()
     }

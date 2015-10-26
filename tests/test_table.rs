@@ -174,3 +174,33 @@ fn test_lcp_search() {
 
     assert_eq!(id, id2)
 }
+
+#[test]
+fn test_pat_scan() {
+    grn::Groonga::new().unwrap();
+
+    let work_dir = tempdir::TempDir::new(env::temp_dir().to_str().unwrap()).unwrap();
+    let mut buf = work_dir.into_path();
+    buf.push("test.db");
+    let path = buf.to_str().unwrap();
+
+    let ctx = Rc::new(grn::Context::new().unwrap());
+    let db = grn::Database::create(ctx.clone(), path).unwrap();
+
+    let table1_name = "Table1";
+    let table1_path = db.path().unwrap().to_string() + &".Table1";
+    let mut table1 = grn::Table::create(
+        ctx.clone(), table1_name, Some(&table1_path),
+        grn::OBJ_TABLE_PAT_KEY | grn::OBJ_PERSISTENT,
+        &grn::Context::at(ctx.clone(), grn::DB_SHORT_TEXT).unwrap(),
+        None).unwrap();
+
+    table1.add_record(Some("foo"));
+    let (nhit, hit, rest) = table1.pat_scan(Some("ebi foo kani foo sasori"));
+
+    assert_eq!(nhit, 2);
+    assert_eq!(hit.id, 1);
+    assert_eq!(hit.offset, 4);
+    assert_eq!(hit.length, 3);
+    assert_eq!(rest, "");
+}
