@@ -615,6 +615,20 @@ impl Table {
         }
     }
 
+    pub fn lcp_search(&mut self, key: Option<&str>) -> ID {
+        unsafe {
+            let c_key = match key {
+                Some(k) => CString::new(k).unwrap().as_ptr(),
+                None => mem::zeroed()
+            };
+
+            groonga::grn_table_lcp_search(
+                self.object.context.ctx, self.object.obj,
+                c_key as *const libc::c_void, string::strlen(c_key) as u32
+            )
+        }
+    }
+
     pub fn name(&self) -> Option<&str> {
         self.object.name()
     }

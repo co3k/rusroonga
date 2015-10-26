@@ -148,3 +148,29 @@ fn test_add_record() {
     assert!(!added, "record should not be added because it already exists");
     assert_eq!(id, id2)
 }
+
+#[test]
+fn test_lcp_search() {
+    grn::Groonga::new().unwrap();
+
+    let work_dir = tempdir::TempDir::new(env::temp_dir().to_str().unwrap()).unwrap();
+    let mut buf = work_dir.into_path();
+    buf.push("test.db");
+    let path = buf.to_str().unwrap();
+
+    let ctx = Rc::new(grn::Context::new().unwrap());
+    let db = grn::Database::create(ctx.clone(), path).unwrap();
+
+    let table1_name = "Table1";
+    let table1_path = db.path().unwrap().to_string() + &".Table1";
+    let mut table1 = grn::Table::create(
+        ctx.clone(), table1_name, Some(&table1_path),
+        grn::OBJ_TABLE_HASH_KEY | grn::OBJ_PERSISTENT,
+        &grn::Context::at(ctx.clone(), grn::DB_SHORT_TEXT).unwrap(),
+        None).unwrap();
+
+    let (id, added) = table1.add_record(Some("foo"));
+    let id2 = table1.lcp_search(Some("foo"));
+
+    assert_eq!(id, id2)
+}
